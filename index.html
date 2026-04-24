@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MateAventuras</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+   margin:0;
+  font-family:Segoe UI,Arial;
+  background:url("fondo.png") no-repeat center center fixed;
+  background-size:cover;
+  color:#fff;
+}
+.container{max-width:900px;margin:auto;padding:12px}
+h1{text-align:center;color:#facc15;margin:10px 0}
+
+.header{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.box{
+  background:#111827;
+  border-radius:14px;
+  padding:10px;
+  text-align:center;
+  font-weight:600;
+}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:10px 0;
+  flex-wrap:wrap;
+}
+
+button{
+  border:none;
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.start{background:#22c55e;color:#052e16}
+.reset{background:#ef4444;color:#fff}
+
+.card{
+  background:#020617cc;
+  border-radius:18px;
+  padding:16px;
+  margin-top:10px;
+  position:relative;
+}
+
+#question{
+  font-size:30px;
+  margin:10px 0;
+  text-align:center;
+}
+
+#answer{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  font-size:22px;
+  text-align:center;
+}
+
+#btnAnswer{
+  background:#3b82f6;
+  color:#fff;
+  margin-top:8px;
+  width:100%;
+}
+
+#steps{
+  display:none;
+  white-space:pre-line;
+  background:#020617;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+#gameOver{
+  display:none;
+  position:absolute;
+  inset:0;
+  align-items:center;
+  justify-content:center;
+  font-size:52px;
+  font-weight:900;
+  color:#ef4444;
+  background:rgba(0,0,0,.6);
+}
+
+#countdown{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:#000c;
+  color:#fff;
+  font-size:80px;
+  z-index:5;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+
+.key{
+  background:#111827;
+  border-radius:12px;
+  padding:16px;
+  font-size:20px;
+  text-align:center;
+  cursor:pointer;
+}
+.key:active{transform:scale(.96)}
+</style>
+</head>
+
+<body>
+
+<div id="countdown"></div>
+
+<div class="container">
+
+<h1>🎮 MateAventuras</h1>
+
+<div class="header">
+  <div class="box">❤️ <span id="vidas">3</span></div>
+  <div class="box">⭐ <span id="score">0</span></div>
+  <div class="box">⏱️ <span id="time">20</span>s</div>
+  <div class="box">Nivel <span id="level">1</span></div>
+</div>
+
+<div class="controls">
+  <button class="start" onclick="startCountdown()">▶️ Comenzar</button>
+  <button class="reset" onclick="resetRanking()">🗑️ Reset Ranking</button>
+</div>
+
+<div class="card">
+  <div id="gameOver">GAME OVER</div>
+
+  <div id="question">Presiona comenzar</div>
+
+  <input id="answer" type="text" inputmode="numeric" disabled placeholder="Respuesta">
+
+  <button id="btnAnswer" onclick="checkAnswer()" disabled>
+    Responder
+  </button>
+
+  <div class="keypad" id="keypad"></div>
+
+  <div id="steps"></div>
+</div>
+
+<h3>🏆 Ranking</h3>
+<ol id="ranking"></ol>
+
+</div>
+
+<script>
+let vidas=3;
+let score=0;
+let level=1;
+let time=20;
+let currentAnswer=0;
+let stepsText="";
+let allSteps=[];
+let timer;
+let gameStarted=false;
+
+/* ===== SONIDOS CORREGIDOS ===== */
+const okSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+const failSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3");
+
+okSound.preload="auto";
+failSound.preload="auto";
+okSound.volume=1;
+failSound.volume=1;
+
+function unlockSounds(){
+  okSound.play().then(()=>{
+    okSound.pause();
+    okSound.currentTime=0;
+  }).catch(()=>{});
+
+  failSound.play().then(()=>{
+    failSound.pause();
+    failSound.currentTime=0;
+  }).catch(()=>{});
+}
+
+function rand(min,max){
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+/* CUENTA REGRESIVA */
+function startCountdown(){
+
+  unlockSounds();
+
+  document.getElementById("steps").style.display="none";
+  document.getElementById("gameOver").style.display="none";
+
+  const cd=document.getElementById("countdown");
+  cd.style.display="flex";
+
+  const seq=["3","2","1","¡COMENZAMOS!"];
+  let i=0;
+
+  const t=setInterval(()=>{
+    cd.innerText=seq[i];
+    i++;
+
+    if(i>=seq.length){
+      clearInterval(t);
+      setTimeout(()=>{
+        cd.style.display="none";
+        startGame();
+      },600);
+    }
+  },800);
+}
+
+function startGame(){
+  vidas=3;
+  score=0;
+  level=1;
+  allSteps=[];
+  gameStarted=true;
+
+  document.getElementById("answer").disabled=false;
+  document.getElementById("btnAnswer").disabled=false;
+
+  updateUI();
+  generateQuestion();
+}
+
+/* OPERACIONES */
+function generateQuestion(){
+
+  let a,b,c,x,m,n,r;
+
+  if(level<=3){
+    a=rand(-20,20);
+    b=rand(-20,20);
+    c=rand(-10,10);
+
+    currentAnswer=a+b-c;
+
+    stepsText=`${a} + ${b} = ${a+b}
+${a+b} - ${c} = ${currentAnswer}`;
+
+    q(`${a} + ${b} - ${c}`);
+  }
+
+  else if(level<=6){
+    a=rand(2,12);
+    b=rand(2,12);
+    c=rand(2,6);
+
+    currentAnswer=(a*b)+c;
+
+    stepsText=`${a} × ${b} = ${a*b}
+${a*b} + ${c} = ${currentAnswer}`;
+
+    q(`${a} × ${b} + ${c}`);
+  }
+
+  else if(level<=9){
+    b=rand(2,10);
+    c=rand(2,10);
+    a=b*c;
+
+    currentAnswer=(a/b)+c;
+
+    stepsText=`${a} ÷ ${b} = ${a/b}
+${a/b} + ${c} = ${currentAnswer}`;
+
+    q(`${a} ÷ ${b} + ${c}`);
+  }
+
+  else{
+    x=rand(1,12);
+    m=rand(2,6);
+    n=rand(-10,10);
+    r=m*x+n;
+
+    currentAnswer=x;
+
+    stepsText=`${m}x + ${n} = ${r}
+Restar ${n}
+${m}x = ${r-n}
+Dividir entre ${m}
+x = ${x}`;
+
+    q(`${m}x + ${n} = ${r}`);
+  }
+
+  startTimer();
+}
+
+function q(txt){
+  document.getElementById("question").innerText=txt;
+}
+
+/* TEMPORIZADOR */
+function startTimer(){
+
+  clearInterval(timer);
+
+  time=20;
+  ui("time",time);
+
+  timer=setInterval(()=>{
+    time--;
+    ui("time",time);
+
+    if(time<=0){
+      clearInterval(timer);
+      bad();
+      loseLife();
+    }
+
+  },1000);
+}
+
+/* RESPUESTA */
+function checkAnswer(){
+
+  if(!gameStarted) return;
+
+  const val=document.getElementById("answer").value.trim();
+  const user=Number(val);
+
+  if(val==="") return;
+
+  allSteps.push(`Nivel ${level} → ${stepsText}`);
+
+  if(user===currentAnswer){
+
+    ok();
+
+    score+=10;
+    level++;
+
+    updateUI();
+    generateQuestion();
+  }
+  else{
+    bad();
+    loseLife();
+  }
+}
+
+/* SONIDO ALEGRE */
+function ok(){
+  okSound.pause();
+  okSound.currentTime=0;
+  okSound.play().catch(()=>{});
+}
+
+/* SONIDO TRISTE */
+function bad(){
+  failSound.pause();
+  failSound.currentTime=0;
+  failSound.play().catch(()=>{});
+}
+
+function loseLife(){
+
+  vidas--;
+
+  if(vidas<=0){
+    endTurn();
+    return;
+  }
+
+  updateUI();
+  generateQuestion();
+}
+
+/* GAME OVER */
+function endTurn(){
+
+  clearInterval(timer);
+  gameStarted=false;
+
+  document.getElementById("answer").disabled=true;
+  document.getElementById("btnAnswer").disabled=true;
+
+  const go=document.getElementById("gameOver");
+  const s=document.getElementById("steps");
+
+  go.style.display="flex";
+  s.style.display="none";
+
+  saveScore();
+  loadRanking();
+
+  setTimeout(()=>{
+    go.style.display="none";
+    s.style.display="block";
+    s.innerText="📘 Resoluciones:\n\n"+allSteps.join("\n\n");
+  },4000);
+}
+
+function updateUI(){
+  ui("vidas",vidas);
+  ui("score",score);
+  ui("level",level);
+  document.getElementById("answer").value="";
+}
+
+function ui(id,val){
+  document.getElementById(id).innerText=val;
+}
+
+/* RANKING */
+function saveScore(){
+
+  let name=prompt("Tu nombre:") || "Jugador";
+
+  let data=JSON.parse(localStorage.getItem("ranking")||"[]");
+
+  data.push({name,score});
+  data.sort((a,b)=>b.score-a.score);
+  data=data.slice(0,5);
+
+  localStorage.setItem("ranking",JSON.stringify(data));
+}
+
+function loadRanking(){
+
+  let data=JSON.parse(localStorage.getItem("ranking")||"[]");
+  let list=document.getElementById("ranking");
+
+  list.innerHTML="";
+
+  data.forEach(p=>{
+    let li=document.createElement("li");
+    li.innerText=`${p.name} - ${p.score}`;
+    list.appendChild(li);
+  });
+}
+
+function resetRanking(){
+  localStorage.removeItem("ranking");
+  loadRanking();
+}
+
+/* TECLADO */
+const keys=['7','8','9','⌫','4','5','6','C','1','2','3','-','0','=','✔'];
+
+const kp=document.getElementById("keypad");
+
+keys.forEach(k=>{
+
+  const b=document.createElement("div");
+  b.className="key";
+  b.innerText=k;
+
+  b.onclick=()=>{
+
+    const inp=document.getElementById("answer");
+
+    if(k==="⌫"){
+      inp.value=inp.value.slice(0,-1);
+    }
+    else if(k==="C"){
+      inp.value="";
+    }
+    else if(k==="✔" || k==="="){
+      checkAnswer();
+    }
+    else{
+      inp.value+=k;
+    }
+  };
+
+  kp.appendChild(b);
+});
+
+loadRanking();
+</script>
+
+</body>
+</html>
