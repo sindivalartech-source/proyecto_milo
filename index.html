@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MateAventuras</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="overlay">
+<h1>🎮 MateAventuras</h1>
+
+<div class="center">
+<button class="start" onclick="startGame()">▶️ Comenzar</button>
+<button class="reset" onclick="resetRanking()">🗑️ Reset Ranking</button>
+</div>
+
+<div class="header">
+<div class="box">❤️ <span id="vidas">3</span></div>
+<div class="box">⭐ <span id="score">0</span></div>
+<div class="box">⏱️ <span id="time">15</span>s</div>
+<div class="box">Nivel <span id="level">1</span></div>
+</div>
+
+<div class="card">
+  <h2 id="question">Presiona comenzar</h2>
+
+  <!-- 🔥 INPUT (reemplaza el tuyo) -->
+  <input id="answer" type="text" readonly placeholder="Tu respuesta">
+
+  <!-- 🔥 BOTONERA TÁCTIL -->
+  <div id="keypad">
+    <button onclick="addValue('1')">1</button>
+    <button onclick="addValue('2')">2</button>
+    <button onclick="addValue('3')">3</button>
+
+    <button onclick="addValue('4')">4</button>
+    <button onclick="addValue('5')">5</button>
+    <button onclick="addValue('6')">6</button>
+
+    <button onclick="addValue('7')">7</button>
+    <button onclick="addValue('8')">8</button>
+    <button onclick="addValue('9')">9</button>
+ 
+    <button onclick="addValue('0')">0</button>
+    <button onclick="addValue('-')">-</button>
+    <button onclick="addValue('/')">/</button>
+    <button onclick="borrar()">⌫</button>
+
+    <button class="clear" onclick="limpiar()">C</button>
+  </div>
+
+  <!-- 🔥 BOTÓN RESPONDER -->
+  <button onclick="checkAnswer()" id="btnAnswer">Responder</button>
+
+  <div id="steps"></div>
+</div>
+
+<h3>🏆 Ranking</h3>
+<ol id="ranking"></ol>
+</div>
+
+<script src="./app.js" defer></script>
+</body>
+</html>
